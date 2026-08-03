@@ -1,0 +1,567 @@
+ <!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- PWA Web App Manifest with QR Icon -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
+        %22name%22: %22QR Payment Utility%22,
+        %22short_name%22: %22QR Utility%22,
+        %22start_url%22: %22./%22,
+        %22display%22: %22standalone%22,
+        %22background_color%22: %22%230f172a%22,
+        %22theme_color%22: %22%234f46e5%22,
+        %22icons%22: [{
+            %22src%22: %22https://cdn-icons-png.flaticon.com/512/1011/1011881.png%22,
+            %22sizes%22: %22512x512%22,
+            %22type%22: %22image/png%22
+        }]
+    }">
+
+    <title>QR Payment Utility</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            background-color: #090d16;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+        .phone-container {
+            width: 100vw;
+            max-width: 390px;
+            height: 100vh;
+            height: 100dvh;
+            max-height: 840px;
+            background: linear-gradient(135deg, #1e1b4b, #0f172a);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+        @media (min-width: 400px) {
+            .phone-container {
+                border-radius: 24px;
+                border: 3px solid #6366f1;
+            }
+        }
+        /* Top Header with Absolute Centered Title */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .top-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1.5px;
+        }
+        .top-icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .install-app-btn {
+            display: none;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        /* Center Amount Section Header */
+        .section-label {
+            text-align: center;
+            color: #a5b4fc;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding-top: 15px;
+        }
+
+        /* Large Amount Display Area */
+        .amount-display-area {
+            padding: 15px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .amount-expr-large {
+            font-size: 30px;
+            font-weight: 700;
+            color: #c7d2fe;
+            margin-bottom: 8px;
+            min-height: 40px;
+            word-break: break-all;
+            letter-spacing: 1px;
+        }
+        .amount-main-val {
+            font-size: 64px;
+            font-weight: 900;
+            color: #ffffff;
+            word-break: break-all;
+            letter-spacing: -1px;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+
+        /* Colorful Keypad Grid Layout (Full Width QR Button) */
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 18px 20px 24px 20px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(15px);
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .p-key {
+            border: none;
+            border-radius: 18px;
+            padding: 16px 0;
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 5px 8px rgba(0,0,0,0.35);
+            transition: transform 0.1s ease, filter 0.1s ease;
+        }
+        .p-key:active {
+            transform: scale(0.94);
+            filter: brightness(1.2);
+        }
+        .k-num {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        .k-op {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            font-size: 30px;
+        }
+        .k-del {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        .k-qr-full {
+            grid-column: span 3;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #1e1b4b;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 22px;
+            text-align: center;
+            width: 92%;
+            max-width: 340px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #a5b4fc;
+        }
+        .settings-input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #6366f1;
+            border-radius: 12px;
+            font-size: 14px;
+            color: white;
+            outline: none;
+        }
+        .settings-input::placeholder {
+            color: #94a3b8;
+        }
+        .save-btn {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 15px;
+        }
+        /* Enlarged & Optimized QR Box for Quick Scanning */
+        .qr-img-box {
+            width: 240px;
+            height: 240px;
+            background: white;
+            padding: 10px;
+            border-radius: 16px;
+            margin: 0 auto;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .share-action-btn {
+            display: block;
+            margin-top: 14px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            padding: 13px;
+            border-radius: 12px;
+            border: none;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <!-- Top Header -->
+    <div class="top-header">
+        <button class="install-app-btn" id="installBtn" onclick="installApp()">Install</button>
+        <div class="top-title">QR</div>
+        <button class="top-icon-btn" onclick="openSettings()">⚙️</button>
+    </div>
+
+    <!-- Amount Section Header -->
+    <div class="section-label">Amount</div>
+
+    <!-- Large Amount Display Area -->
+    <div class="amount-display-area">
+        <div class="amount-expr-large" id="exprBox">0</div>
+        <div class="amount-main-val" id="displayAmt">₹0</div>
+    </div>
+
+    <!-- Keypad Grid (Full Width QR Button, No Minus) -->
+    <div class="keypad-grid">
+        <button type="button" class="p-key k-num" onclick="pressKey('1')">1</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('2')">2</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('3')">3</button>
+
+        <button type="button" class="p-key k-num" onclick="pressKey('4')">4</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('5')">5</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('6')">6</button>
+
+        <button type="button" class="p-key k-num" onclick="pressKey('7')">7</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('8')">8</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('9')">9</button>
+
+        <button type="button" class="p-key k-op" onclick="pressKey('+')">+</button>
+        <button type="button" class="p-key k-num" onclick="pressKey('0')">0</button>
+        <button type="button" class="p-key k-del" onclick="backspace()">⌫</button>
+
+        <button type="button" class="p-key k-qr-full" onclick="generateQRAction()">QR Code</button>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal" id="zoomModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeZoom()">&times;</span>
+        <h3 style="margin-bottom:10px; color:#ffffff; font-size:17px;">Scan & Share</h3>
+        <div class="qr-img-box">
+            <img id="qrImageZoom" src="" alt="QR Code">
+        </div>
+        <p style="margin-top:10px; font-size:14px; font-weight:bold; color:#a5b4fc;" id="zoomUpi">demo@okaxis</p>
+        <button class="share-action-btn" onclick="shareQRAndLink()">📤 Share QR & Link</button>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeSettings()">&times;</span>
+        <h3 style="color:#ffffff; margin-bottom:12px; font-size:17px;">Configuration Settings</h3>
+        <input type="text" id="upiInput" class="settings-input" placeholder="Enter Identifier (e.g. name@okaxis)">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 4px; color: #a5b4fc; font-size: 14px; font-weight: bold;">
+            <span>Voice Mute (ஒலி அணைப்பு)</span>
+            <input type="checkbox" id="muteCheckbox" style="width: 20px; height: 20px; accent-color: #6366f1; cursor: pointer;">
+        </div>
+        <button class="save-btn" onclick="saveSettings()">Save</button>
+    </div>
+</div>
+
+<script>
+    // PWA Service Worker Controller
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `
+                const CACHE_NAME = 'qr-utility-v21';
+                self.addEventListener('install', (e) => {
+                    e.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
+                    );
+                    self.skipWaiting();
+                });
+                self.addEventListener('activate', (e) => {
+                    e.waitUntil(self.clients.claim());
+                });
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(
+                        caches.match(e.request).then((res) => {
+                            return res || fetch(e.request).then((netRes) => {
+                                return caches.open(CACHE_NAME).then((cache) => {
+                                    cache.put(e.request, netRes.clone());
+                                    return netRes;
+                                });
+                            });
+                        }).catch(() => caches.match('./'))
+                    );
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'text/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+        });
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-block';
+    });
+
+    function installApp() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        }
+    }
+
+    let currentExpression = '0';
+    let finalAmount = '0';
+    let currentPayloadUrl = '';
+
+    // Tamil speech mapping for buttons
+    const speechMap = {
+        '0': 'Zero, பூஜ்ஜியம்',
+        '1': 'One, ஒன்று',
+        '2': 'Two, இரண்டு',
+        '3': 'Three, மூன்று',
+        '4': 'Four, நான்கு',
+        '5': 'Five, ஐந்து',
+        '6': 'Six, ஆறு',
+        '7': 'Seven, ஏழு',
+        '8': 'Eight, எட்டு',
+        '9': 'Nine, ஒன்பது',
+        '+': 'Plus, கூட்டல்',
+        '⌫': 'Delete, நீக்கு'
+    };
+
+    function speakButton(val) {
+        const isMuted = localStorage.getItem('qr_mute') === 'true';
+        if (isMuted) return;
+
+        if ('speechSynthesis' in window) {
+            let textToSpeak = speechMap[val] || (val === 'QR Code' ? 'QR Code, க்யூஆர் கோடு' : val);
+            let utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'ta-IN';
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function updateDisplay() {
+        try {
+            let sanitized = currentExpression.replace(/[^0-9+\-*/().]/g, '');
+            if(sanitized === '' || sanitized === '0') {
+                document.getElementById('exprBox').innerText = '0';
+                document.getElementById('displayAmt').innerText = '₹0';
+                finalAmount = '0';
+                return;
+            }
+            let res = eval(sanitized);
+            if(!isNaN(res)) {
+                finalAmount = Number(res).toFixed(0);
+                document.getElementById('exprBox').innerText = currentExpression;
+                document.getElementById('displayAmt').innerText = '₹' + finalAmount;
+            } else {
+                document.getElementById('exprBox').innerText = currentExpression;
+            }
+        } catch(e) {
+            document.getElementById('exprBox').innerText = currentExpression;
+        }
+    }
+
+    function pressKey(val) {
+        speakButton(val);
+        if(currentExpression === '0' && !isNaN(val)) {
+            currentExpression = val;
+        } else {
+            currentExpression += val;
+        }
+        updateDisplay();
+    }
+
+    function backspace() {
+        speakButton('⌫');
+        if(currentExpression.length > 1) {
+            currentExpression = currentExpression.slice(0, -1);
+        } else {
+            currentExpression = '0';
+        }
+        updateDisplay();
+    }
+
+    function generateQRAction() {
+        speakButton('QR Code');
+        try {
+            let res = eval(currentExpression.replace(/[^0-9+\-*/().]/g, ''));
+            if(!isNaN(res) && res > 0) {
+                finalAmount = Number(res).toFixed(0);
+            }
+        } catch(e) {}
+
+        const identifier = localStorage.getItem('demo_custom_id') || 'demo@okaxis';
+        const prefix = ['up', 'i://', 'pay?pa='].join('');
+        currentPayloadUrl = prefix + identifier + '&am=' + finalAmount + '&cu=INR';
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(currentPayloadUrl)}`;
+        
+        document.getElementById('qrImageZoom').src = qrApiUrl;
+        document.getElementById('zoomUpi').innerText = identifier;
+        document.getElementById('zoomModal').style.display = 'flex';
+    }
+
+    async function shareQRAndLink() {
+        const qrImgSrc = document.getElementById('qrImageZoom').src;
+        const shareText = `Please pay ₹${finalAmount} using this link or QR:\n${currentPayloadUrl}`;
+
+        if (navigator.share) {
+            try {
+                const response = await fetch(qrImgSrc);
+                const blob = await response.blob();
+                const file = new File([blob], `QR_Amount_${finalAmount}.png`, { type: 'image/png' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: `Payment ₹${finalAmount}`,
+                        text: shareText,
+                        files: [file]
+                    });
+                    return;
+                }
+            } catch (err) {
+                console.log('File share fallback triggered', err);
+            }
+        }
+
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    function openSettings() {
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+    function closeSettings() {
+        document.getElementById('settingsModal').style.display = 'none';
+    }
+    function saveSettings() {
+        const val = document.getElementById('upiInput').value.trim();
+        const isMuted = document.getElementById('muteCheckbox').checked;
+        if(val !== '') {
+            localStorage.setItem('demo_custom_id', val);
+        } else {
+            localStorage.removeItem('demo_custom_id');
+        }
+        localStorage.setItem('qr_mute', isMuted);
+        closeSettings();
+    }
+    function closeZoom() {
+        document.getElementById('zoomModal').style.display = 'none';
+    }
+
+    window.onload = function() {
+        const saved = localStorage.getItem('demo_custom_id');
+        if(saved) {
+            document.getElementById('upiInput').value = saved;
+        }
+        const savedMute = localStorage.getItem('qr_mute') === 'true';
+        document.getElementById('muteCheckbox').checked = savedMute;
+    }
+</script>
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkS
